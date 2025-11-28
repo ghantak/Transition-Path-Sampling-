@@ -1,0 +1,129 @@
+*NAME: solvent-sphere.str
+*PURPOSE: make a TIP3 sphere with user-defined radius, and make room for 
+* the solute
+*AUTHOR: Lennart Nilsson, Karolinska Institutet (October 7, 2003)
+* THERE IS NO ERROR CHECKING IN THIS FILE
+*
+set OVERLAP   2.2
+set OVERLAP2  2.2
+set BOX 18.856
+set NW0 216
+define SOLUTE1 sele SOLUTE .and. .not. hydrogen end
+bomb -2
+
+coor orient sele SOLUTE end
+coor stat sele SOLUTE end
+coor trans xdir @RADIUS ydir @RADIUS zdir @RADIUS
+calc SIZ = 2 *  @RADIUS
+calc NUM = INT(@SIZ / @BOX + 1) 
+
+calc NROD = @NW0 * @NUM
+calc NSLAB = @NUM * @NROD
+
+read sequence tip3 216
+gene wat0 noangle nodihe
+stream read-watbox.str
+coor stat sele segid wat0 .and. .not. hydrogen end
+calc XTR = - ?XMIN
+calc YTR = - ?YMIN
+calc ZTR = - ?ZMIN
+coor trans xdir @XTR ydir @YTR zdir @ZTR sele segid WAT0 end
+
+read sequence tip3 216
+gene wat4 noangle nodihe
+coor dupl sele segid wat0 end sele segid wat4 end
+
+if NUM .eq. 1 goto do_z
+set I 2
+label yloop
+  read sequence tip3 216
+  gene wat1 noangle nodihe
+  coor dupl sele segid wat0 end sele segid wat1 end
+  coor transl ydir @BOX sele segid wat1 end
+  coor transl ydir @BOX sele segid wat0 end
+  join wat4 wat1 renumber
+  incr I by 1
+  if I le @NUM goto yloop
+
+label DO_Z
+delete atom sele segid wat0 end
+if NUM .eq. 1 goto do_x
+rename segid wat0 sele segid wat4 end
+read sequence tip3 @NROD
+gene wat4 noangle nodihe
+coor dupl sele segid wat0 end sele segid wat4 end
+
+set I 2
+label ZLOOP
+  read sequence tip3 @NROD
+  gene wat1 noangle nodihe
+  coor dupl sele segid wat0 end sele segid wat1 end
+  coor transl zdir @BOX sele segid wat1 end
+  coor transl zdir @BOX sele segid wat0 end
+  join wat4 wat1 renumber
+  incr I by 1
+  if I le @NUM goto zloop
+
+label DO_X
+delete atom sele segid wat0 end
+rename segid wat0 sele segid wat4 end
+
+coor transl xdir -@RADIUS ydir -@RADIUS zdir -@RADIUS
+
+read sequence tip3 @NSLAB
+gene wat2 noangle nodihe
+coor dupl sele segid wat0 end sele segid wat2 end
+delete atom sele .byres. ( segid wat2 .and. type OH2 .and. .not. -
+  ( point 0.0 0.0 0.0 CUT @RADIUS ) ) end 
+delete atom sele .byres. ( segid wat2 .and. type OH2 .and.  -
+  ( SOLUTE1 .around. @OVERLAP ) ) end 
+read sequence tip3 @NSLAB
+gene wat3 noangle nodihe
+coor dupl sele segid wat0 end sele segid wat3 end
+coor rota xdir 1.0 phi 30.0 sele segid wat3 end
+coor transl xdir -1.0  sele segid wat3 end
+delete atom sele .byres. ( segid wat3 .and. type OH2 .and. .not. -
+  ( point 0.0 0.0 0.0 CUT @RADIUS ) ) end 
+delete atom sele .byres. ( segid wat3 .and. type OH2 .and.  -
+( (SOLUTE1 .or. (segid wat2 .and. type OH2)) .around. @OVERLAP2 ) ) end 
+join wat2 wat3 renumber
+
+if NUM .eq. 1 goto done
+
+set I 2
+label XLOOP
+  read sequence tip3 @NSLAB
+  gene wat3 noangle nodihe
+  coor dupl sele segid wat0 end sele segid wat3 end
+  coor transl xdir @BOX sele segid wat3 end
+  coor transl xdir @BOX sele segid wat0 end
+  delete atom sele .byres. ( segid wat3 .and. type OH2 .and. .not. -
+  ( point 0.0 0.0 0.0 CUT @RADIUS ) ) end 
+  delete atom sele .byres. ( segid wat3 .and. type OH2 .and.  -
+   ( SOLUTE1 .around. @OVERLAP ) ) end 
+  join wat2 wat3 renumber
+  read sequence tip3 @NSLAB
+  gene wat3 noangle nodihe
+  coor dupl sele segid wat0 end sele segid wat3 end
+  coor rota xdir 1.0 phi 30.0 sele segid wat3 end
+  coor transl xdir -1.0  sele segid wat3 end
+  delete atom sele .byres. ( segid wat3 .and. type OH2 .and. .not. -
+  ( point 0.0 0.0 0.0 CUT @RADIUS ) ) end 
+  delete atom sele .byres. ( segid wat3 .and. type OH2 .and.  -
+   ( (SOLUTE1 .or. (segid wat2 .and. type OH2) ).around. @OVERLAP2 ) ) end 
+  join wat2 wat3 renumber
+  incr I by 1
+  if I le @NUM goto xloop
+
+label DONE
+delete atom sele segid wat0 end
+rename segid wat4 sele segid wat2 end
+
+write psf card name solv.psf
+write coor card name solv.crd
+
+cons fix sele SOLUTE end
+
+return
+
+

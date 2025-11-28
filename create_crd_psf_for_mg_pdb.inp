@@ -1,0 +1,47 @@
+lower
+bomblevel 0
+wrnlev 10
+prnlev 10
+faster
+
+read rtf  card name toppar/top_all36_prot.rtf
+read rtf  card name toppar/top_all36_carb.rtf append
+read para card name toppar/par_all36_prot.prm flex
+read para card name toppar/par_all36_carb.prm flex append 
+stream toppar/toppar_water_ions.str
+read rtf  card name toppar/top_all36_na.rtf append
+read para card name toppar/par_all36_na.prm flex append
+stream toppar/stream/na/toppar_all36_na_nad_ppi.str
+
+
+
+! Read sequence from the pdb coordinate file
+open read card name mg_pps.pdb unit 21
+read sequence pdb unit 21
+
+! Generate segment for atp
+generate MAGN setup
+
+! Go back and read coordinates
+rewind unit 21
+read coordinate pdb unit 21
+close unit 21
+
+! Fill internal coordinates, preserve existing
+ic fill preserve
+ic parameter
+ic build
+
+! Add hydrogens
+hbuild
+
+!rename segid QMRE sele all end
+
+! Write PSF and coordinates
+open write card name mg_pps.psf unit 32
+write psf card unit 32
+
+open write card name mg_pps.crd unit 31
+write coordinates card select all end unit 31
+
+stop

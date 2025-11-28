@@ -1,0 +1,152 @@
+bomblevel 0
+wrnlev 5
+prnlev 5 
+
+read rtf card name toppar/top_all36_prot.rtf
+read rtf card name toppar/top_all36_carb.rtf append
+read para card name toppar/par_all36_prot.prm flex
+read para card name toppar/par_all36_carb.prm flex append 
+stream toppar/toppar_water_ions.str
+read rtf card name toppar/top_all36_na.rtf append
+read para card name toppar/par_all36_na.prm flex append
+stream toppar/stream/na/toppar_all36_na_nad_ppi.str
+
+read psf card name nneutr.psf
+read coord card name mini.crd
+
+! SETUP NONBOND
+nbond inbfrq -1 elec fswitch vdw vswitch cutnb 14 ctofnb 12 ctonnb 10 ctexnb 200
+energy
+
+define qm sele segid QMRE end
+squantum sele qm end am1 glnk sele (segid QMRE .and. type CB) .or.  -
+  (segid QMRE .and. type C5D) end charge 0 remo
+
+!******************************************************
+!*HEATING UP ******************************************
+!******************************************************
+
+!****** 15 ps with harmonic restraints with respect to minimized structure
+define heatcons sele (.not. resn TIP3 .and. (.not. hydrogen) ) end
+
+cons harm bestfit mass force 20 sele heatcons  end
+
+open writ unit 54 card name "heat1.rst"
+open writ unit 57 card name "heat1.ene"
+
+shake bonh sele all end
+
+dyna verl start -
+time 0.001 nstep 15000 -
+firstt 0.0 finalt 300.0 teminc 20 -
+ihtfrq 500 ieqfrq 1000 ntrfrq 50 -
+iasors 1 iasvel 1 ichecw 1 -
+isvfrq 0 nsavc 0 nsavv 0 nprint 100 -
+iunrea -1 iunwri 54 iuncrd -1 iunvel -1 kunit 57 
+
+write coor card name "heat1.crd"
+
+close unit 54
+close unit 57
+
+!******* 5 ps with smaller harmonic restraints with respect to minimized structure
+open read unit 53 card name "heat1.rst"
+open writ unit 54 card name "heat2.rst"
+open writ unit 57 card name "heat2.ene"
+ 
+cons harm clear
+cons harm bestfit mass force 10 sele heatcons  end
+shake bonh sele all end
+ 
+dyna verl rest -
+time 0.001 nstep 5000 -
+firstt 290.0 finalt 300.0 teminc 2 -
+ihtfrq 500 ieqfrq 1000 ntrfrq 50 -
+iasors 1 iasvel 1 ichecw 1 -
+isvfrq 0 nsavc 0 nsavv 0 nprint 100 -
+iunrea 53 iunwri 54 iuncrd -1 iunvel -1 kunit 57
+ 
+write coor card name "heat2.crd"
+
+close unit 53
+close unit 54
+close unit 57
+
+!********** 5 ps with harmonic restraints on QM heavy atoms
+open read unit 53 card name "heat2.rst"
+open writ unit 54 card name "heat3.rst"
+open writ unit 57 card name "heat3.ene"
+
+cons harm clear
+
+cons harm bestfit mass force 5 sele heatcons  end
+
+shake bonh sele all end
+
+dyna verl rest -
+time 0.001 nstep 5000 -
+firstt 290.0 finalt 300.0 teminc 2 -
+ihtfrq 500 ieqfrq 1000 ntrfrq 50 -
+iasors 1 iasvel 1 ichecw 1 -
+isvfrq 0 nsavc 0 nsavv 0 nprint 100 -
+iunrea 53 iunwri 54 iuncrd -1 iunvel -1 kunit 57
+
+write coor card name "heat3.crd"
+
+close unit 53
+close unit 54
+close unit 57
+
+!********* 5 ps with smaller harmonic restraints on QM heavy atoms
+open read unit 53 card name "heat3.rst"
+open writ unit 54 card name "heat4.rst"
+open writ unit 57 card name "heat4.ene"
+ 
+cons harm clear
+
+cons harm bestfit mass force 2 sele heatcons  end
+
+shake bonh sele all end
+ 
+dyna verl rest -
+time 0.001 nstep 5000 -
+firstt 290.0 finalt 300.0 teminc 2 -
+ihtfrq 500 ieqfrq 1000 ntrfrq 50 -
+iasors 1 iasvel 1 ichecw 1 -
+isvfrq 0 nsavc 0 nsavv 0 nprint 100 -
+iunrea 53 iunwri 54 iuncrd -1 iunvel -1 kunit 57
+
+write coor card name "heat4.crd"
+
+close unit 53
+close unit 54
+close unit 57
+
+energy
+
+!************* 5 ps with smaller harmonic restraints on QM heavy atoms
+cons harm clear
+cons harm bestfit mass force 1 sele heatcons end
+
+open read unit 53 card name "heat4.rst"
+open writ unit 54 card name "heat5.rst"
+open writ unit 57 card name "heat5.ene"
+ 
+shake bonh sele .not. segid qmmm end
+ 
+dyna verl rest -
+time 0.001 nstep 5000 -
+firstt 290.0 finalt 300.0 teminc 2 -
+ihtfrq 500 ieqfrq 1000 ntrfrq 50 -
+iasors 1 iasvel 1 ichecw 1 -
+isvfrq 0 nsavc 0 nsavv 0 nprint 100 -
+iunrea 53 iunwri 54 iuncrd -1 iunvel -1 kunit 57
+
+write coor card name "heat5.crd"
+
+close unit 53
+close unit 54
+close unit 57
+
+stop
+

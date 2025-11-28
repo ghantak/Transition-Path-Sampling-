@@ -1,0 +1,38 @@
+bomblevel -1
+wrnlev 10
+prnlev 10 
+faster
+
+
+read rtf card name toppar/top_all36_prot.rtf
+read rtf card name toppar/top_all36_carb.rtf append
+read para card name toppar/par_all36_prot.prm flex
+read para card name toppar/par_all36_carb.prm flex append
+stream toppar/toppar_water_ions.str
+read rtf card name toppar/top_all36_na.rtf append
+read para card name toppar/par_all36_na.prm flex append
+stream toppar/stream/na/toppar_all36_na_nad_ppi.str
+
+
+read psf card name myosin_pps_prot.psf 
+read psf card name atp_pps.psf append
+read psf card name mg_pps.psf append
+read psf card name water1.psf append
+read psf card name water2.psf append
+read psf card name water3.psf append
+read psf card name water4.psf append
+
+read coor card name myosin_pps_prot.crd 
+read coor card name atp_pps.crd append
+read coor card name mg_pps.crd append
+read coor card name water1.crd append
+read coor card name water2.crd append
+read coor card name water3.crd append
+read coor card name water4.crd append
+
+
+write psf card name all.psf
+write coor card name all.crd
+write coor pdb name all.pdb
+stop
+

@@ -1,0 +1,95 @@
+!* DPPC bilayer; ion placement sampling; seed @SD run @RUN
+!*
+!bomlev -1
+
+! READ RTF AND PARAM FILES
+!stream rtfprm.str
+
+! SETUP STUFF; PROJECT DEPENDENT
+set icl 107     ! no. chlorides
+set ina 104     ! no. sodiums
+set mnd 8    ! minimum distance to solute, other ions
+! SOLUTE EXCLUSION; selection w/o SELE ... END; SEE addions.str
+!set sol SOLUTE 
+set emin 0.    ! initial min energy value
+set ncfg 1     ! initialize loop counter
+set last 100   ! no. of passes thru the loop
+! CHANGING ISEED WILL SAMPLE 100 DIFFERENT PLACEMENTS
+random uniform iseed @SD
+! KEEP A RECORD OF THE ENERGIES, FRAMES
+open unit 9 write card name ionmc@RUN.dat
+
+! BEGUN THE LOOP HAS
+label placion
+open unit 10 write card name loop@RUN.log
+outu 10
+! LOOP LOG FILE OVERWRITTEN ON EACH PASS; GREATLY REDUCES OUTPUT
+! LAST PASS ALWAYS SAVED (IN EVENT OF FAILURE)
+
+! FULLY SOLVATED, MINIMIZED WITH CRYSTAL LATTICE
+! READ MATCHING PSF AND COOR FILES
+open unit 3 read card name nsolv.psf
+read psf card unit 3
+close unit 3
+open unit 3 read card name nsolv.crd
+read coor card unit 3
+close unit 3
+
+! RANDOM WATER REPLACEMENT
+stream addions-shell.str
+
+! ASSUMES WATER IS SEGID WAT; RENUMBER THE WATER MOLECULES
+join BULK renum
+
+! SETUP CRYSTAL (DEFINE, BUILD), IMAGE CENTERING W. MODIFIED PSF
+!stream cryst.str
+
+! SETUP SHAKE, NONBOND
+!shake bonh param
+!update inbfrq 5 atom vatom cutnb 12.0 ctofnb 10. cdie eps 1. -
+!    ctonnb 8. vswitch cutim 12.0 imgfrq 5 wmin 1.0 -
+!    ewald pmew fftx 48 ffty 48 fftz 64  kappa .33 spline order 6
+
+! BRIEF MIN OF IONS INSERTED INTO SOLVATED MODEL
+!mini sd nstep 5 nprint 1
+!mini abnr nstep 25 nprint 5
+
+! LOG SOME DATA
+write title unit 9
+* @NCFG ?ENER @EMIN 
+*
+
+! KEY LOGICAL TEST; CONFIGS WITH HIGHER ENERGY REJECTED
+if emin .lt. ?ENER goto test
+
+! WRITE THE LATEST MINIMUM ENERGY RESULT; CONFIG ACCEPTED
+open unit 11 write card name nneutr.psf
+write psf card unit 11
+* Neutralized Shell hhLDH
+*
+
+! DO AN IMAGE UPDATE AND WRITE THE COOR FILE
+!update
+open unit 11 write card name nneutr.crd
+write coor card unit 11
+* Neutralized Shell hhLDH
+* run @RUN seed @SD MC @NCFG C ?XTLC E ?ENER PREV @EMIN
+*
+
+STOP
+
+! UPDATE MINIMUM ENERGY
+set emin ?ENER
+
+! TEST FOR EXIT, AND SETUP FOR NEXT PASS; REVERT TO STDOUT, CLOSE LOG
+label test
+!crystal free
+!shake off
+incr ncfg by 1
+outu 6
+close unit 10
+if ncfg le @LAST goto placion
+close unit 9
+
+return
+

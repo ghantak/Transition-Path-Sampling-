@@ -1,0 +1,67 @@
+bomblevel -1
+wrnlev 10
+!prnlev 10 
+!faster
+ 
+! ==== Topology and parameters ====
+read rtf  card name toppar/top_all36_prot.rtf
+read rtf  card name toppar/top_all36_carb.rtf append
+read para card name toppar/par_all36_prot.prm flex
+read para card name toppar/par_all36_carb.prm flex append 
+stream toppar/toppar_water_ions.str
+read rtf  card name toppar/top_all36_na.rtf append
+read para card name toppar/par_all36_na.prm flex append
+stream toppar/stream/na/toppar_all36_na_nad_ppi.str
+stream toppar/qm4_prot.str
+ 
+! ==== Read system ====
+read psf  card name all.psf
+read coor card name all.crd
+ 
+! ---------------------------------------------------
+!                 DEFINE REGIONS
+! ---------------------------------------------------
+dele atom sele segid WT4 .or. segid WT3 .or. segid WT2 .or. segid WT1 end
+dele atom sele segid MAGN .and. bynu 12534 end
+dele atom sele segid ATP .and. (bynu 12518 .or. bynu 12521:12533) end
+dele atom sele segid MYH7 .and. (bynu 7377 .or. bynu 7380:7385 .or. bynu 3822 -
+   .or. bynu 3825:3839 .or. bynu 3811 .or. bynu 3814:3815 .or. bynu 3800 -
+   .or. bynu 3803:3804 .or. bynu 3760 .or. bynu 3763:3767 .or. bynu 2940 -
+   .or. bynu 2942:2943 .or. bynu 2883 .or. bynu 2886:2887) end
+
+write psf card name mm.psf
+write coor card name mm.crd
+write coor pdb name mm.pdb
+ 
+dele atom  sele  all end
+ 
+read psf card name all.psf
+read coor card name all.crd
+ 
+dele atom sele .not. (segid WT4 .or. segid WT3 .or. segid WT2 .or. segid WT1 -
+    .or. (segid MAGN .and. bynu 12534) - 
+    .or. (segid ATP .and. (bynu 12518 .or. bynu 12521:12533)) .or. (segid MYH7 .and. (bynu 7377 -
+    .or. bynu 7380:7385 .or. bynu 3822 .or. bynu 3825:3839 .or. bynu 3811 -
+    .or. bynu 3814:3815 .or. bynu 3800 .or. bynu 3803:3804 .or. bynu 3760 -
+    .or. bynu 3763:3767 .or. bynu 2940 .or. bynu 2942:2943 .or. bynu 2883 -
+    .or. bynu 2886:2887))) end
+
+ 
+rename segid QMRE sele all end            !
+rename resname QMR sele all end              ! when all.psf contain same segname for all
+rename resid 1 sele resname QMR end       ! 
+ 
+ 
+write psf card name qm.psf
+write coor card name qm.crd
+write coor pdb name qm.pdb
+ 
+stop
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 

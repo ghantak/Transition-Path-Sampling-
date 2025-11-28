@@ -1,0 +1,31 @@
+bomblevel -1
+wrnlev 10
+prnlev 10 
+faster
+
+read rtf  card name toppar/top_all36_prot.rtf
+read rtf  card name toppar/top_all36_carb.rtf append
+read para card name toppar/par_all36_prot.prm flex
+read para card name toppar/par_all36_carb.prm flex append 
+stream toppar/toppar_water_ions.str
+read rtf  card name toppar/top_all36_na.rtf append
+read para card name toppar/par_all36_na.prm flex append
+stream toppar/stream/na/toppar_all36_na_nad_ppi.str
+stream toppar/qm4_prot.str
+
+
+read psf card name nsolv.psf
+read coord card name nsolv.crd
+
+set RUN 1
+
+set SD 977479543582047
+
+
+define SOLUTE sele segid MYH7 .or. segid ATP .or. segid QMRE .or. segid BULK end
+
+! put correct chargein ion.str
+stream ion.str
+
+STOP
+

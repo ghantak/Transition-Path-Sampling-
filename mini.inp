@@ -1,0 +1,39 @@
+bomblevel 0
+wrnlev 5
+prnlev 5 
+
+read rtf  card name toppar/top_all36_prot.rtf
+read rtf  card name toppar/top_all36_carb.rtf append
+read para card name toppar/par_all36_prot.prm flex
+read para card name toppar/par_all36_carb.prm flex append 
+stream toppar/toppar_water_ions.str
+read rtf  card name toppar/top_all36_na.rtf append
+read para card name toppar/par_all36_na.prm flex append
+stream toppar/stream/na/toppar_all36_na_nad_ppi.str
+stream toppar/qm4.str
+
+read psf card name n.psf
+read coord card name nstart.crd
+
+!************************************************
+!*** CONSTRAINED MINIMIZATION OF THE SEQUENCE *** 
+!************************************************
+nbond inbfrq -1 elec fswitch vdw vswitch cutnb 14 ctofnb 12 ctonnb 10 ctexnb 200 
+energy
+
+define backbone sele segid MYH7 .and. -
+       (type N .or. type C .or. type CA .or. type O) end
+define lig sele segid QMRE end
+!cons harm bestfit mass force 10 sele backbone .or. lig  end
+
+mini sd nstep 50 nprint 10
+mini abnr nstep 2000 nprint 10 tolgrd 0.01
+
+cons harm clear
+
+write psf card name mini.psf
+write coor card name mini.crd
+write coor pdb name mini.pdb
+
+stop
+
