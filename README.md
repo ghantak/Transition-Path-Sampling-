@@ -1,0 +1,490 @@
+Steps to prepare system
+
+#!/bin/bash
+####################################################################
+#                 prepare protein crd and psf file 
+####################################################################
+cat > create_crd_psf_for_protein_pdb.inp <<ini
+bomblevel 0
+wrnlev 10
+prnlev 10 
+faster
+
+read rtf card name toppar/top_all36_prot.rtf
+read rtf card name toppar/top_all36_carb.rtf append
+read para card name toppar/par_all36_prot.prm flex
+read para card name toppar/par_all36_carb.prm flex append 
+!read rtf card name toppar/top_all36_cgenff.rtf append
+!read para card name toppar/par_all36_cgenff.prm flex append
+
+! Read sequence from the pdb coordinate file.
+open read card name myosin_pps.pdb unit 21
+read sequence pdb unit 21
+
+! Generate protein segment, go back at top of file and read coordinates
+generate myh7 setup
+rewind unit 21
+read coordinate pdb offset 0 unit 21 
+close unit 21
+
+! Transfer all existing coord. to ic table, while preserving ic entries for missing atoms.
+ic fill preserve
+! Obtain any ic values still needed from parameter table.
+ic parameter
+! Retain existing coordinates and build the rest from ic table.
+ic build
+
+hbuild
+
+! PSF file
+open write card name myosin_pps.psf unit 32
+write psf card unit 32
+
+! Coordinates of all atoms in proteind crd format
+open write card name myosin_pps.crd unit 31
+write coordinates card select all end unit 31
+
+stop
+
+ini
+
+charmm49 <create_crd_psf_for_protein_pdb.inp
+
+####################################################################
+                 prepare cofactor crd and psf file 
+####################################################################
+cat > create_crd_psf_for_cofactor_pdb.inp <<ini
+
+lower
+bomblevel 0
+wrnlev 10
+prnlev 10
+faster
+
+read rtf  card name toppar/top_all36_prot.rtf
+read rtf  card name toppar/top_all36_carb.rtf append
+read para card name toppar/par_all36_prot.prm flex
+read para card name toppar/par_all36_carb.prm flex append 
+stream toppar/toppar_water_ions.str
+read rtf  card name toppar/top_all36_na.rtf append
+read para card name toppar/par_all36_na.prm flex append
+stream toppar/stream/na/toppar_all36_na_nad_ppi.str
+
+
+! Read sequence from the pdb coordinate file
+open read card name atp_modeled_namd.pdb unit 21
+read sequence pdb unit 21
+
+! Generate segment for atp
+generate ATP setup
+
+! Go back and read coordinates
+rewind unit 21
+read coordinate pdb unit 21
+close unit 21
+
+! Fill internal coordinates, preserve existing
+ic fill preserve
+ic parameter
+ic build
+
+! Add hydrogens
+hbuild
+
+! Write PSF and coordinates
+open write card name atp_modeled_namd.psf unit 32
+write psf card unit 32
+
+open write card name atp_modeled_namd.crd unit 31
+write coordinates card select all end unit 31
+
+stop
+ini
+
+charmm49 <create_crd_psf_for_cofactor_pdb.inp
+
+####################################################################
+                 prepare bound water crd and psf file  
+####################################################################
+cat > create_crd_psf_for_waters.inp <<ini
+bomblevel 0
+wrnlev 10
+prnlev 10 node 0
+faster
+
+read rtf  card name toppar/top_all36_prot.rtf
+read rtf  card name toppar/top_all36_carb.rtf append
+read para card name toppar/par_all36_prot.prm flex
+read para card name toppar/par_all36_carb.prm flex append 
+stream toppar/toppar_water_ions.str
+read rtf  card name toppar/top_all36_na.rtf append
+read para card name toppar/par_all36_na.prm flex append
+stream toppar/stream/na/toppar_all36_na_nad_ppi.str
+
+
+! Read sequence from the pdb coordinate file.
+open read card name water.pdb unit 21
+read sequence pdb unit 21
+
+! Generate protein segment, go back at top of file and read coordinates
+generate WAT setup warn noangle nodihedral 
+rewind unit 21
+read coordinate pdb unit 21 
+!read coordinate pdb offset -600 unit 21 
+
+! Transfer all existing coord. to ic table, while preserving ic entries for missing atoms.
+ic fill preserve
+! Obtain any ic values still needed from parameter table.
+ic parameter
+! Retain existing coordinates and build the rest from ic table.
+ic build
+
+hbuild sele hydrogen end
+
+open write card name test.pdb unit 34
+write coordinates pdb select all end unit 34
+close unit 34
+
+! Coordinates of all atoms in proteind crd format
+write coor card name water.crd unit 31
+
+! PSF file
+write psf card name water.psf unit 32
+
+stop
+ini
+
+charmm49 <create_crd_psf_for_waters.inp
+
+####################################################################
+                 combine crd and psf
+####################################################################
+
+cat > combine.inp <<ini
+bomblevel 0
+wrnlev 10
+prnlev 10 
+faster
+
+read rtf card name toppar/top_all36_prot.rtf
+read rtf card name toppar/top_all36_carb.rtf append
+read para card name toppar/par_all36_prot.prm flex
+read para card name toppar/par_all36_carb.prm flex append
+stream toppar/toppar_water_ions.str
+read rtf card name toppar/top_all36_na.rtf append
+read para card name toppar/par_all36_na.prm flex append
+stream toppar/stream/na/toppar_all36_na_nad_ppi.str
+
+
+!read rtf card name toppar/top_all36_cgenff.rtf append
+!read para card name toppar/par_all36_cgenff.prm flex append
+
+!read rtf card name top_all36_cgenff.rtf append
+!read para card name toppar/par_all36_cgenff.prm flex append
+
+read psf card name myosin_pps.psf 
+read psf card name atp_pps.psf append
+!read psf card name bound_water.psf append
+
+read psf card name bound_water1.psf append
+read psf card name bound_water2.psf append
+read psf card name bound_water3.psf append
+read psf card name bound_water4.psf append
+read psf card name bound_water5.psf append
+
+read coor card name myosin_pps.crd 
+read coor card name atp_pps.crd append
+!read coor card name bound_water.crd append
+
+read coor card name bound_water1.crd append
+read coor card name bound_water2.crd append
+read coor card name bound_water3.crd append
+read coor card name bound_water4.crd append
+read coor card name bound_water5.crd append
+
+
+write psf card name all.psf
+write coor card name all.crd
+write coor pdb name all.pdb
+stop
+
+ini
+charmm49 <combine.inp
+
+# Note After combine check the resnumber in crd and psf if different
+#copy the resnum from all.crd to all.psf
+####################################################################
+                 partition of QM and MM regions
+####################################################################
+cat > partition_qmmm.inp <<ini
+bomblevel -1
+wrnlev 10
+!prnlev 10 
+!faster
+
+! ==== Topology and parameters ====
+read rtf  card name toppar/top_all36_prot.rtf
+read rtf  card name toppar/top_all36_carb.rtf append
+read para card name toppar/par_all36_prot.prm flex
+read para card name toppar/par_all36_carb.prm flex append 
+stream toppar/toppar_water_ions.str
+read rtf  card name toppar/top_all36_na.rtf append
+read para card name toppar/par_all36_na.prm flex append
+stream toppar/stream/na/toppar_all36_na_nad_ppi.str
+
+
+! ==== Read system ====
+read psf  card name all.psf
+read coor card name all.crd
+
+! ---------------------------------------------------
+!                 DEFINE REGIONS
+! ---------------------------------------------------
+dele atom sele segid WT5 .or. segid WT4 .or. segid WT3 .or. segid WT2 .or. segid WT1 end
+dele atom sele segid MAGN .and. bynu 12533 end
+dele atom sele segid ATP .and. (bynu 12520:12532) end
+dele atom sele segid MYH7 .and. (bynu 7376 .or. bynu 7379:7384 .or. bynu 3821 -
+   .or. bynu 3824:3838 .or. bynu 3810 .or. bynu 3813:3814 .or. bynu 3799 -
+   .or. bynu 3802:3803 .or. bynu 3759 .or. bynu 3762:3766 .or. bynu 2939 -
+   .or. bynu 2941:2946 .or. bynu 2882 .or. bynu 2885:2886) end
+
+
+write psf card name mm.psf
+write coor card name mm.crd
+write coor pdb name mm.pdb
+
+dele atom  sele  all end
+
+read psf card name all.psf
+read coor card name all.crd
+
+dele atom sele .not. (segid WT5 .or. segid WT4 .or. segid WT3 .or. segid WT2 .or. segid WT1 -
+    .or. (segid MAGN .and. bynu 12533) - 
+    .or. (segid ATP .and. (bynu 12520:12532)) .or. (segid MYH7 .and. (bynu 7376 -
+    .or. bynu 7379:7384 .or. bynu 3821 .or. bynu 3824:3838 .or. bynu 3810 -
+    .or. bynu 3813:3814 .or. bynu 3799 .or. bynu 3802:3803 .or. bynu 3759 -
+    .or. bynu 3762:3766 .or. bynu 2939 .or. bynu 2941:2946 .or. bynu 2882 -
+    .or. bynu 2885:2886))) end
+
+
+
+rename segid QMRE sele all end            !
+rename resname QMR sele all end              ! when all.psf contain same segname for all
+rename resid 1 sele resname QMR end       ! 
+
+
+write psf card name qm.psf
+write coor card name qm.crd
+write coor pdb name qm.pdb
+
+stop
+
+ini
+
+#after partition modify the atomname in crd and psf file according to 
+# the qm4.str file (inside toppar)
+###############################################################
+#          Delete other crystal water from MM regions
+###############################################################
+
+cat > delete_wat.inp << 'EOF'
+
+bomblevel 0
+wrnlev 10
+prnlev 10 
+faster
+
+read rtf card name toppar/top_all36_prot.rtf
+read rtf card name toppar/top_all36_carb.rtf append
+read para card name toppar/par_all36_prot.prm flex
+read para card name toppar/par_all36_carb.prm flex append 
+stream toppar/toppar_water_ions.str
+read rtf card name toppar/top_all36_na.rtf append
+read para card name toppar/par_all36_na.prm flex append
+stream toppar/stream/na/toppar_all36_na_nad_ppi.str
+!read rtf card name toppar/top_all36_cgenff.rtf append
+!read para card name toppar/par_all36_cgenff.prm flex append
+
+!read psf(s)
+read psf card name mm.psf
+read coor card name mm.crd 
+
+!bomblev -1 to handle the noninteger charges from seperate qm + mm sections
+
+dele atom sele segid WAT end
+
+write psf card name mm_nowat.psf
+write coor card name mm_nowat.crd
+
+read psf card name mm.psf
+read coor card name mm.crd 
+
+dele atom sele .not. (segid WAT) end
+
+write psf card name mm_wat.psf
+write coor card name mm_wat.crd
+
+stop
+
+EOF
+
+
+#####################################################################
+#          Patch
+#####################################################################
+
+bomblevel -1
+wrnlev 10
+prnlev 10 
+faster
+
+read rtf  card name toppar/top_all36_prot.rtf
+read rtf  card name toppar/top_all36_carb.rtf append
+read para card name toppar/par_all36_prot.prm flex
+read para card name toppar/par_all36_carb.prm flex append 
+stream toppar/toppar_water_ions.str
+read rtf  card name toppar/top_all36_na.rtf append
+read para card name toppar/par_all36_na.prm flex append
+stream toppar/stream/na/toppar_all36_na_nad_ppi.str
+stream toppar/qm4.str
+
+!bomblev -1 to handle the noninteger charges from seperate qm + mm sections
+
+!read psf(s)
+read psf card name mm.psf
+read psf card name qm.psf append
+
+! read in cartesian coordinates from crd 
+read coor card name mm.crd 
+read coor card name qm.crd append
+
+patch SERX QMRE 1 MYH7 180  setu sort warn
+patch THRX QMRE 1 MYH7 185  setu sort warn
+patch ASNX QMRE 1 MYH7 238  setu sort warn
+patch SERY QMRE 1 MYH7 241  setu sort warn
+patch SERZ QMRE 1 MYH7 242  setu sort warn
+patch ARGX QMRE 1 MYH7 243  setu sort warn
+patch GLUX QMRE 1 MYH7 466  setu sort warn
+patch ATPX QMRE 1 ATP 782    setu sort warn
+
+
+write psf  card name nstart.psf
+write coor card name nstart.crd
+write coor pdb name nstart.pdb
+
+stop
+
+# After patching the coordinates of the qm atoms might changes 
+# copy the coordinates from qm.crd and paste to nstart.crd
+
+################################################################
+#           Add MM crystal water
+###############################################################
+bomblevel 0
+wrnlev 10
+prnlev 10 
+faster
+
+read rtf  card name toppar/top_all36_prot.rtf
+read rtf  card name toppar/top_all36_carb.rtf append
+read para card name toppar/par_all36_prot.prm flex
+read para card name toppar/par_all36_carb.prm flex append 
+stream toppar/toppar_water_ions.str
+read rtf  card name toppar/top_all36_na.rtf append
+read para card name toppar/par_all36_na.prm flex append
+stream toppar/stream/na/toppar_all36_na_nad_ppi.str
+
+
+!read psf(s)
+read psf card name nstart.psf
+read psf card name mm_wat.psf append
+
+read coor card name nstart.crd
+read coor card name mm_wat.crd append
+
+write psf card name start.psf
+write coor card name start.crd
+
+stop
+
+################################################################
+#           Solvate the system
+#           solvate.inp
+###############################################################
+bomblevel -1
+wrnlev 10
+prnlev 10 
+faster
+
+read rtf  card name toppar/top_all36_prot.rtf
+read rtf  card name toppar/top_all36_carb.rtf append
+read para card name toppar/par_all36_prot.prm flex
+read para card name toppar/par_all36_carb.prm flex append 
+stream toppar/toppar_water_ions.str
+read rtf  card name toppar/top_all36_na.rtf append
+read para card name toppar/par_all36_na.prm flex append
+stream toppar/stream/na/toppar_all36_na_nad_ppi.str
+stream toppar/qm4.str
+
+
+read psf card name nstart.psf
+read coord card name nstart.crd
+
+coor orie sele ALL end
+coor stat sele ALL end
+calc RADIUS = ( ?XMAX - ?XMIN + 30 ) /2
+!calc disp1 = @radius + 0.7
+
+define SOLUTE sele segid MYH7 .or. segid ATP .or. segid QMRE end
+! move to have center of system x,y, and z-coordinates RADIUS A from origin
+! i.e. place SOLUTE centered at (RADIUS,RADIUS,RADIUS) in first octant 
+
+!!(1)
+!coor orient sele SOLUTE end
+!coor stat sele SOLUTE end
+!coor trans xdir @RADIUS ydir @RADIUS zdir @RADIUS
+
+stream solvent-sphere.str
+rename segid BULK sele segid WAT4 end
+join BULK renumber
+
+cons fix sele NONE end
+
+write psf card name nsolv.psf
+write coor card name nsolv.crd
+
+STOP
+
+
+################################################################
+#           Neutralize the system
+#           neutralize.inp
+###############################################################
+bomblevel -1
+wrnlev 10
+prnlev 10 
+faster
+
+read rtf  card name toppar/top_all36_prot.rtf
+read rtf  card name toppar/top_all36_carb.rtf append
+read para card name toppar/par_all36_prot.prm flex
+read para card name toppar/par_all36_carb.prm flex append 
+stream toppar/toppar_water_ions.str
+read rtf  card name toppar/top_all36_na.rtf append
+read para card name toppar/par_all36_na.prm flex append
+stream toppar/stream/na/toppar_all36_na_nad_ppi.str
+stream toppar/qm4.str
+
+read psf card name nstart.psf
+read coord card name nstart.crd
+
+set RUN 1
+
+set SD 977479543582047
+
+define SOLUTE sele segid MYH7 .or. segid ATP .or. segid QMRE end
+
+! put correct chargein ion.str
+stream ion.str
+
+STOP
